@@ -1,0 +1,99 @@
+{
+  "Comment": "Project Disa : Step Function Demo using DynamoDB, Lambda, SQS and CloudWatch Alarm",
+  "StartAt": "Get Alarm State",
+  "States": {
+    "Get Alarm State": {
+      "Type": "Task",
+      "InputPath": "$",
+      "Parameters": {
+        "AlarmNames": [
+          "${CloudWatchAlarmName}"
+        ]
+      },
+      "Resource": "arn:aws:states:::aws-sdk:cloudwatch:describeAlarms",
+      "ResultSelector": {
+        "StateValue.$": "$.MetricAlarms[0].StateValue"
+      },
+      "ResultPath": "$.Alarm",
+      "Next": "Alarm State OK ?",
+      "Comment": "Gets the state of the alarm"
+    },
+    "Alarm State OK ?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.Alarm.StateValue",
+          "StringMatches": "OK",
+          "Next": "Send Message"
+        }
+      ],
+      "Default": "DynamoDB UpdateItem",
+      "Comment": "Checks the alarm state - OK or ALARM"
+    },
+    "DynamoDB UpdateItem": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:dynamodb:updateItem",
+      "Parameters": {
+        "TableName": "${DynamoDBTableName}",
+        "Key": {
+          "sequenceNo": {
+            "S.$": "$.Payload.keys.sequenceNo"
+          }
+        },
+        "UpdateExpression": "SET sendStatus = :myValueRef",
+        "ExpressionAttributeValues": {
+          ":myValueRef": {
+            "S": "Failure"
+          }
+        }
+      },
+      "Next": "Fail",
+      "Comment": "Update the SendStatus to failure for the given  item"
+    },
+    "Send Message": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${DisaLambdaFunctionProcess}:$LATEST"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Send Message Successful ?",
+      "ResultPath": "$",
+      "Comment": "Sends a message to the SNS Topic"
+    },
+    "Send Message Successful ?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.Payload.SendStatus",
+          "StringMatches": "Success",
+          "Next": "Success"
+        }
+      ],
+      "Default": "DynamoDB UpdateItem",
+      "InputPath": "$",
+      "Comment": "Checks the status of the SNS send message API call."
+    },
+    "Success": {
+      "Type": "Succeed",
+      "Comment": "The state machine successfully completed"
+    },
+    "Fail": {
+      "Type": "Fail",
+      "Comment": "The state machine ends in failure"
+    }
+  }
+}

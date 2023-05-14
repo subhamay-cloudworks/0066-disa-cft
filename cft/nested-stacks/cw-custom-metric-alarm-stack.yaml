@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Project Disa: CFN Template to create am IAM Role for Lambda Function
+
+Metadata:
+  TemplateName: cw-custom-metric-alarm-stack.yaml
+  TemplateType: CloudWatch Alarms.
+  Version: 1.0.0
+  Owner: Subhamay Bhattacharyya
+  ProjectName: Disa
+  Modification History:
+    - 1.0.0  - May 09, 2023  -- Initial Version 
+  Resources: 
+    - IAM Role
+    - IAM Policy Attached To The Role
+  StepsToTest: |
+    Manualy verify the Stack.
+  StepsToCleanup: |
+    Stack delete command
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    #################################### CloudWatch Custom Metric And Alarm ########################
+    - Label: 
+        default: "CloudWatch Custom Metric And Alarm Configuration"
+      Parameters: 
+        - AlarmName
+        - MetricName
+        - DimensionName
+        - DimensionValue
+        - CloudWatchNameSpace
+        - AlarmThreshold
+        - AlarmPeriodInSeconds
+        - DatapointsToAlarm
+        - EvaluationPeriodsInHour
+    ParameterLabels:
+      ################################## CloudWatch Custom Metric And Alarm ########################
+      AlarmName:
+        default: "CloudWatch Alarm Name."
+      MetricName: 
+        default: "Custom Metric Name."
+      DimensionName:
+        default: "Metric Dimension Name."
+      DimensionValue: 
+        default: "Metric Dimension Value."
+      CloudWatchNameSpace: 
+        default: "CloudWatch Custom Namespace."
+      AlarmThreshold: 
+        default: "CloudWatch Alarm Threshold."
+      AlarmPeriodInSeconds: 
+        default: "CloudWatch Alarm Period in Seconds."
+      DatapointsToAlarm:  
+        default: "Datapoints to Alarm"
+      EvaluationPeriodsInHour:
+        default: "Evaluation Period in Hours."
+Parameters:
+  ################################## CloudWatch Custom Metric And Alarm ########################
+  AlarmName:
+    Default: custom-metric-alarm
+    Description: "The Alarm Name."
+    Type: String
+    MinLength: 5
+    MaxLength: 100
+    AllowedPattern: '[a-zA-Z0-9-]*'
+    ConstraintDescription: Must be between 5 and 255 characters long and begin with a letter and can contain number or hyphen (-).
+  MetricName:
+    Default: custom-metric
+    Description: "The CloudWatch Custom Metric."
+    Type: String
+    MinLength: 5
+    MaxLength: 255
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: Must be between 5 and 255 characters long and begin with a letter and can contain number or hyphen (-).
+  DimensionName: 
+    Default: dimension
+    Description: "The CloudWatch Custom Metric."
+    Type: String
+    MinLength: 5
+    MaxLength: 30
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: Must be between 5 and 30 characters long and begin with a letter and can contain number or hyphen (-).
+  DimensionValue:
+    Default: value
+    Description: "The CloudWatch Custom Metric Value."
+    Type: String
+    MinLength: 5
+    MaxLength: 30
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: Must be between 5 and 30 characters long and begin with a letter and can contain number or hyphen (-).
+  CloudWatchNameSpace:
+    Default: disa/service-available
+    Description: "The CloudWatch Custom Metric."
+    Type: String
+    MinLength: 15
+    MaxLength: 30
+    AllowedPattern: '[a-zA-Z-]*[/]*[a-zA-Z-]*'
+    ConstraintDescription: Must be between 15 and 30 characters long and begin with a letter and can contain number or hyphen (-).
+  AlarmThreshold:
+    Default: 200
+    Description: "The CloudWatch Alarm Threshold."
+    Type: Number
+    MinValue: 200
+    MaxValue: 900
+    ConstraintDescription: must be between 70 and 99.
+  AlarmPeriodInSeconds:
+    Default: 3600
+    Description: "The CloudWatch Alarm Threshold."
+    Type: Number
+    MinValue: 60
+    MaxValue: 86400
+    ConstraintDescription: must be between 60 and 86400 seconds.
+  DatapointsToAlarm: 
+    Default: 1
+    Description: "The CloudWatch Alarm Threshold."
+    Type: Number
+    MinValue: 1
+    MaxValue: 10
+    ConstraintDescription: must be between 1 and 10 seconds.
+  EvaluationPeriodsInHour: 
+    Default: 1
+    Description: "CloudWatch Evaluation Periods in Hours."
+    Type: Number
+    MinValue: 1
+    MaxValue: 3
+    ConstraintDescription: must be between 1 and 3 Hours.
+Resources:
+  CloudWatchAlarmForCustomMetric:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      ActionsEnabled: true
+      AlarmDescription: "Disa Custom Metric Alarm" 
+      AlarmName: !Ref AlarmName
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      MetricName: !Ref MetricName
+      Namespace: !Ref CloudWatchNameSpace
+      Statistic: Minimum
+      Threshold: !Ref AlarmThreshold
+      DatapointsToAlarm: !Ref DatapointsToAlarm
+      EvaluationPeriods: !Ref EvaluationPeriodsInHour       #### Datapoints to alarm -> DatapointsToAlarm out of EvaluationPeriods (hour)
+      Dimensions:
+        - Name: !Ref DimensionName
+          Value: !Ref DimensionValue
+      Period: !Ref AlarmPeriodInSeconds
+      TreatMissingData: notBreaching
+Outputs:
+  CloudWatchAlarmArn:
+    Description: The Arn of the CloudWatch Alarm
+    Value: !GetAtt CloudWatchAlarmForCustomMetric.Arn
+

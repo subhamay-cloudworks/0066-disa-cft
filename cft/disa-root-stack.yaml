@@ -1,0 +1,718 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+   Project Disa: Root Stack Template To Create The Stack To Demonstrate Step Function using DynamoDB, Lambda, SNS and CloudWatch Alarm
+
+Metadata:
+  TemplateName: disa-root-stack.yaml
+  TemplateType: Root Stack.
+  Version: 1.0.0
+  Owner: Subhamay Bhattacharyya
+  ProjectName: Tarius
+  Modification History:
+    - 1.0.0  - May 09, 2023   -- Initial Version 
+
+  Resources: 
+    - Three Lambda Functions.
+    - One DynamoDB Table with KMS Encryption.
+    - One CloudWatch Alarm
+    - One SNS Topic with Email Subscription and encrypted with KMS.
+    - One State Machine
+    - One CloudWatch Alarm
+  StepsToTest: |
+    Manualy verify the Stack.
+  StepsToCleanup: |
+    Stack delete command
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    #################################### Project Name and Environment ##############################
+    - Label: 
+        default: "Project And Environment:"
+      Parameters: 
+        - ProjectName
+        - Environment
+    #################################### Code Repository Bucket ####################################
+    - Label: 
+        default: "Code Repository Bucket:"
+      Parameters:
+        - CodeRepositoryBucket
+    #################################### KMS Key ###################################################
+    - Label: 
+        default: "KMS Configuration:"
+      Parameters: 
+        - KmsMasterKeyAlias
+        - KmsMasterKeyId
+    #################################### DynamoDB Table ############################################
+    - Label: 
+        default: "DynamoDB Configuration:"
+      Parameters: 
+      - DynamoDBTableName
+      - DynamoDBTablePartitionKey
+      - DynamoDBTablePartitionKeyAttributeType
+      - DynamoDBTableGSIAttributeName
+      - DynamoDBTableGSIAttributeType
+    #################################### Lambda Function ###########################################
+    - Label: 
+        default: "Lambda Configuration:"
+      Parameters: 
+      - LambdaExecutionRoleName
+      - LambdaExecutionPolicyName
+      - LambdaFunctionInitProcessBaseName
+      - LambdaFunctionProcessBaseName
+      - LambdaFunctionRetryBaseName
+      - LambdaFunctionTimeoutSecs
+      - LambdaRuntime
+      - LambdaFunctionInitProcessCodeKey
+      - LambdaFunctionProcessCodeKey
+      - LambdaFunctionRetryCodeKey
+      - LambdaReservedConcurrency
+    #################################### State Machine #############################################
+    - Label: 
+        default: "State Machine"
+      Parameters: 
+      - StepFunctionName
+      - StepFunctionExecutionRoleName
+      - StepFunctionExecutionPolicyName
+    #################################### EventBridge Scheduler #####################################
+    - Label: 
+        default: "Event Bridge Scheduler:"
+      Parameters: 
+      - EventBridgeSchedulerExecutionRoleName
+      - EventBridgeSchedulerExecutionPolicyName
+    #################################### CloudWatch Custom Metric And Alarm ########################
+    - Label: 
+        default: "CloudWatch Custom Metric And Alarm Configuration"
+      Parameters: 
+      - AlarmName
+      - MetricName
+      - DimensionName
+      - DimensionValue
+      - CloudWatchNameSpace
+      - AlarmThreshold
+      - AlarmPeriodInSeconds
+      - DatapointsToAlarm
+      - EvaluationPeriodsInHour
+    #################################### SNS Topic and Subscription Email ##########################
+    - Label: 
+        default: "SNS Configuration:"
+      Parameters: 
+        - SNSTopicBaseName
+        - SNSTopicDisplayName
+        - SubscriptionEmail
+    ParameterLabels:
+      ################################## Project Name and Environment ##############################
+      ProjectName:
+        default: "Project Name."
+      Environment:
+        default: "Environment Name."
+      ################################## Code Repository Bucket ####################################
+      CodeRepositoryBucket:
+        default: "Lambda Code S3 Bucket."
+      ################################## KMS Key ###################################################
+      KmsMasterKeyAlias:
+        default: "KMS Key Alias."
+      KmsMasterKeyId:
+        default: "KMS Key Id."
+      ################################## DynamoDB Table ############################################
+      DynamoDBTableName: 
+        default: "DynamoDB Table."
+      DynamoDBTablePartitionKey:
+        default: "Partition Key."
+      DynamoDBTablePartitionKeyAttributeType: 
+        default: "Partition Key Datatype."
+      DynamoDBTableGSIAttributeName:
+        default: "GSI Attribute Name."
+      DynamoDBTableGSIAttributeType:
+        default: "GSI Attribute Type."
+      ################################## Lambda Function ###########################################
+      LambdaExecutionRoleName:
+        default: "Lambda Execution Role."
+      LambdaExecutionPolicyName: 
+        default: "Lambda Excution Policy."
+      LambdaFunctionInitProcessBaseName:
+        default: "Lambda Function Name To Trigger The Step Function."
+      LambdaFunctionProcessBaseName:
+        default: "Lambda Function Name To Process Some Data."
+      LambdaFunctionRetryBaseName:
+        default: "Lambda Function Name To Retry The Processing Of Failed Events."
+      LambdaRuntime:
+        default: "Lambda Function Runtime."
+      LambdaFunctionInitProcessCodeKey: 
+        default: "Lambda Code Zip File To Check The Status Of A Service."
+      LambdaFunctionProcessCodeKey: 
+        default: "Lambda Code Zip File To Process Some Data."
+      LambdaFunctionRetryCodeKey: 
+        default: "Lambda Code Zip File To Retry The Processing Of Failed Events."
+      LambdaReservedConcurrency:
+        default: "Lambda Reserved Concurrency."
+      ################################## Step Function #############################################
+      StepFunctionName:
+        default: "State Machine Name:"
+      StepFunctionExecutionRoleName:
+        default: "State Machine Role Name:"
+      StepFunctionExecutionPolicyName: 
+        default: "State Macine Excution Policy:"
+      ################################## EventBridge Scheduler #####################################
+      EventBridgeSchedulerExecutionRoleName:
+        default: "Event Bridge Scheduler Execution Role Name."
+      EventBridgeSchedulerExecutionPolicyName:
+        default: "Event Bridge Scheduler Execution Policy Name."
+      ################################## CloudWatch Custom Metric And Alarm ########################
+      AlarmName:
+        default: "CloudWatch Alarm Name."
+      MetricName: 
+        default: "Custom Metric Name."
+      DimensionName:
+        default: "Metric Dimension Name."
+      DimensionValue: 
+        default: "Metric Dimension Value."
+      CloudWatchNameSpace: 
+        default: "CloudWatch Custom Namespace."
+      AlarmThreshold: 
+        default: "CloudWatch Alarm Threshold."
+      AlarmPeriodInSeconds: 
+        default: "CloudWatch Alarm Period in Seconds."
+      DatapointsToAlarm:  
+        default: "Datapoints to Alarm"
+      EvaluationPeriodsInHour:
+        default: "Evaluation Period in Hours."
+      ################################## SNS Topic and Subscription Email ##########################
+      SNSTopicBaseName:
+        default: "The SNS Topic Name."
+      SNSTopicDisplayName:
+        default: "The SNS Topic Display Name."
+      SubscriptionEmail:
+        default: "The Email To Subscribe To The SNS Topic."
+Parameters:
+  ###################################### Project Name and Environment ##############################
+  ProjectName:
+    Default: disa
+    Description: "The Project Name."
+    Type: String
+    MinLength: 4
+    MaxLength: 30
+    AllowedPattern: "[a-z]*"
+    ConstraintDescription: "The length should be between 5 and 30, must contain only lowercase alphabets."
+  Environment:
+    Default: devl
+    Description: "The Environment Name."
+    Type: String
+    AllowedValues: ["devl", "test", "prod"]
+    ConstraintDescription: "The Environment must be devl / test or prod"
+  ###################################### Code Repository Bucket ####################################
+  CodeRepositoryBucket:
+    Default: subhamay-projects-repository-us-east-1
+    Description: "S3 Bucket Storing The Lambda Code."
+    Type: String
+    MinLength: 10
+    MaxLength: 40
+    AllowedPattern: "[a-z][a-z0-9-.]*"
+    ConstraintDescription: "The length should be between 3 and 63, must contain only lowercase letter,numbers,dash, dot and should start with a letter."
+  ###################################### KMS Key ###################################################
+  KmsMasterKeyAlias:
+    Default: "SB-KMS"
+    Description: "The KMS Master Key Alias To Be Used For Server Side Encryption."
+    Type: String
+    MinLength: 5
+    MaxLength: 20
+    AllowedPattern: "[a-zA-Z0-9-]*"
+    ConstraintDescription: "The length of the KMS Key Alias should be beteen 5 and 20 and can only contain lowercase alphanumeric characters and dash."
+  KmsMasterKeyId:
+    Default: "e4c733c5-9fbe-4a90-bda1-6f0362bc9b89"
+    Description: "The KMS Key Id Used For Encryption."
+    Type: String
+    MinLength: 36
+    MaxLength: 36
+    AllowedPattern: "[a-z0-9-]*"
+    ConstraintDescription: "The length of the KMS Key Id should be 36 and must be lowercase alphabets, numbers and dash."
+  ###################################### DynamoDB Table ############################################
+  DynamoDBTableName:
+    Default: disa-dynamodb-table
+    Description: "The Name Of The Dynamodb Table Used For Iterating Using Step Function Map State."
+    Type: String
+    MinLength: 10
+    MaxLength: 40
+    AllowedPattern: "[a-z][a-z0-9-]*"
+    ConstraintDescription: "The length should be between 10 and 40, must contain only lowercase letter, number, dash and should start with a letter."
+  DynamoDBTablePartitionKey:
+    Default: sequenceNo
+    Description: "The Name Of The Dynamodb Partition Key."
+    Type: String
+    MinLength: 2
+    MaxLength: 30
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9\-_]*'
+    ConstraintDescription: "Must begin with a letter and contain only alphanumeric characters."
+  DynamoDBTablePartitionKeyAttributeType:
+    Default: "S"
+    Description: "The Datatype Of The Dynamodb Partition Key."
+    Type: String
+    AllowedValues: ["N", "S", "B"]
+    ConstraintDescription: "The datatype should be either N (Number), S (String) or B (Binary)"
+  DynamoDBTableGSIAttributeName:
+    Default: sendStatus
+    Description: "The Name Of The Dynamodb GSI Attribute Name."
+    Type: String
+    MinLength: 2
+    MaxLength: 30
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9\-_]*'
+    ConstraintDescription: "Must begin with a letter and contain only alphanumeric characters."
+  DynamoDBTableGSIAttributeType:
+    Default: "S"
+    Description: "The Datatype Of The Dynamodb GSI Attribute Type."
+    Type: String
+    AllowedValues: ["N", "S", "B"]
+    ConstraintDescription: "The datatype should be either N (Number), S (String) or B (Binary)"
+  ###################################### Lambda Function ###########################################
+  LambdaExecutionRoleName:
+    Default: disa-lambda-role
+    Description: "The Execution Role Of The Lambda Function."
+    Type: String
+    MinLength: 10
+    MaxLength: 40
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: "Must be between 5 and 255 characters long and begin with a letter and can contain number or hyphen (-)."
+  LambdaExecutionPolicyName:
+    Default: disa-lambda-policy
+    Description: "The Execution Policy Attached To The Lambda Execution Role."
+    Type: String
+    MinLength: 10
+    MaxLength: 40
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: "Must be between 5 and 255 characters long and begin with a letter and can contain number or hyphen (-)."
+  LambdaFunctionInitProcessBaseName:
+    Default: disa-init-process-lambda
+    Description: "The Base Name The Lambda Function. The Region And Environment Will Be Added As Suffix By The Template."
+    Type: String
+    MinLength: 10
+    MaxLength: 40
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: "Must be between 5 and 255 characters long and begin with a letter and can contain number or hyphen (-)."
+  LambdaFunctionProcessBaseName:
+    Default: disa-process-lambda
+    Description: "The Base Name The Lambda Function. The Region And Environment Will Be Added As Suffix By The Template."
+    Type: String
+    MinLength: 10
+    MaxLength: 40
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: "Must be between 5 and 255 characters long and begin with a letter and can contain number or hyphen (-)."
+  LambdaFunctionRetryBaseName:
+    Default: disa-retry-lambda
+    Description: "The Base Name The Lambda Function. The Region And Environment Will Be Added As Suffix By The Template."
+    Type: String
+    MinLength: 10
+    MaxLength: 40
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: "Must be between 5 and 255 characters long and begin with a letter and can contain number or hyphen (-)."
+  LambdaFunctionTimeoutSecs:
+    Default: 900
+    Description: "The Lambda Function Timeout Period (In Seconds)"
+    Type: Number
+    MinValue: 3
+    MaxValue: 900
+    ConstraintDescription: must be between 3 and 900 seconds.
+  LambdaRuntime:
+    Default: python3.8
+    Description: "Lambda Runtime (Python 3.7, 3.8 or 3.9)"
+    Type: String
+    AllowedValues: [python3.7 ,python3.8, python3.9]
+    ConstraintDescription: "The Lambda runtime should be either Python 3.7, 3.8 or 3.9"
+  LambdaFunctionInitProcessCodeKey:
+    Default: 0066-disa/code/python/disa_init_process.zip
+    Description: "The Zip File Name Containing The Lambda Code."
+    Type: String
+    MinLength: 10
+    MaxLength: 100
+    AllowedPattern: "[a-zA-Z0-9-/_.]*"
+    ConstraintDescription: "The length should be between 10 and 100, must contain only lowercase letter,numbers,dash, dot, underscore"
+  LambdaFunctionProcessCodeKey:
+    Default: 0066-disa/code/python/disa_process.zip
+    Description: "The Zip File Name Containing The Lambda Code."
+    Type: String
+    MinLength: 10
+    MaxLength: 100
+    AllowedPattern: "[a-zA-Z0-9-/_.]*"
+    ConstraintDescription: "The length should be between 10 and 100, must contain only lowercase letter,numbers,dash, dot, underscore"
+  LambdaFunctionRetryCodeKey:
+    Default: 0066-disa/code/python/disa_retry.zip
+    Description: "The Zip File Name Containing The Lambda Code."
+    Type: String
+    MinLength: 10
+    MaxLength: 100
+    AllowedPattern: "[a-zA-Z0-9-/_.]*"
+    ConstraintDescription: "The length should be between 10 and 100, must contain only lowercase letter,numbers,dash, dot, underscore"
+  LambdaReservedConcurrency:
+    Default: 1
+    Description: "Lambda Reserved Concurrency"
+    Type: Number
+    MinValue: 0
+    MaxValue: 5
+  ###################################### Step Function #############################################
+  StepFunctionName:
+    Default: disa-state-machine
+    Description: "The Base Name The Lambda Function. The Region And Environment Will Be Added As Suffix By The Template."
+    Type: String
+    MinLength: 10
+    MaxLength: 40
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: "Must be between 5 and 255 characters long and begin with a letter and can contain number or hyphen (-)."
+  StepFunctionExecutionRoleName:
+    Default: disa-step-function-role
+    Description: "The Execution Role Of The State Machine."
+    Type: String
+    MinLength: 10
+    MaxLength: 40
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: "Must be between 5 and 255 characters long and begin with a letter and can contain number or hyphen (-)."
+  StepFunctionExecutionPolicyName:
+    Default: disa-step-function-policy
+    Description: "The Execution Policy Of The State Machine."
+    Type: String
+    MinLength: 10
+    MaxLength: 40
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: "Must be between 5 and 255 characters long and begin with a letter and can contain number or hyphen (-)."
+  ###################################### EventBridge Scheduler #####################################
+  EventBridgeSchedulerExecutionRoleName:
+    Default: disa-event-bridge-role
+    Description: Event Bridge Scheduler Execution Role Name
+    Type: String
+    MinLength: 10
+    MaxLength: 60
+    AllowedPattern: "[a-zA-Z0-9-]*"
+    ConstraintDescription: The length should be between 20 and 60, must contain only alphanumeric or dash.
+  EventBridgeSchedulerExecutionPolicyName:
+    Default: disa-event-bridge-policy
+    Description: Event Bridge Scheduler Execution Policy Name
+    Type: String
+    MinLength: 10
+    MaxLength: 60
+    AllowedPattern: "[a-zA-Z0-9-]*"
+    ConstraintDescription: The length should be between 20 and 60, must contain only alphanumeric or dash.
+  ###################################### CloudWatch Custom Metric And Alarm ########################
+  AlarmName:
+    Default: disa-custom-metric-alarm
+    Description: "The lambda dead letter queue."
+    Type: String
+    MinLength: 5
+    MaxLength: 50
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: Must be between 5 and 255 characters long and begin with a letter and can contain number or hyphen (-).
+  MetricName:
+    Default: custom-metric
+    Description: "The CloudWatch Custom Metric."
+    Type: String
+    MinLength: 5
+    MaxLength: 255
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: Must be between 5 and 255 characters long and begin with a letter and can contain number or hyphen (-).
+  DimensionName: 
+    Default: status-code
+    Description: "The CloudWatch Custom Metric Dimension Name."
+    Type: String
+    MinLength: 5
+    MaxLength: 30
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: Must be between 5 and 30 characters long and begin with a letter and can contain number or hyphen (-).
+  DimensionValue:
+    Default: status-code-value
+    Description: "The CloudWatch Custom Metric Dimension Value."
+    Type: String
+    MinLength: 5
+    MaxLength: 30
+    AllowedPattern: '[a-zA-Z-]*'
+    ConstraintDescription: Must be between 5 and 30 characters long and begin with a letter and can contain number or hyphen (-).
+  CloudWatchNameSpace:
+    Default: disa/service-available
+    Description: "The CloudWatch Custom Metric."
+    Type: String
+    MinLength: 15
+    MaxLength: 30
+    AllowedPattern: '[a-zA-Z-]*[/]*[a-zA-Z-]*'
+    ConstraintDescription: Must be between 15 and 30 characters long and begin with a letter and can contain number or hyphen (-).
+  AlarmThreshold:
+    Default: 300
+    Description: "The CloudWatch Alarm Threshold."
+    Type: Number
+    MinValue: 200
+    MaxValue: 900
+    ConstraintDescription: must be between 70 and 99.
+  AlarmPeriodInSeconds:
+    Default: 60
+    Description: "The CloudWatch Alarm Threshold."
+    Type: Number
+    MinValue: 60
+    MaxValue: 86400
+    ConstraintDescription: must be between 60 and 86400 seconds.
+  DatapointsToAlarm: 
+    Default: 1
+    Description: "The CloudWatch Alarm Threshold."
+    Type: Number
+    MinValue: 1
+    MaxValue: 10
+    ConstraintDescription: must be between 1 and 10 seconds.
+  EvaluationPeriodsInHour: 
+    Default: 1
+    Description: "CloudWatch Evaluation Periods in Hours."
+    Type: Number
+    MinValue: 1
+    MaxValue: 3
+    ConstraintDescription: must be between 1 and 3 Hours.
+  ###################################### SNS Topic and Subscription Email ##########################
+  SNSTopicBaseName:
+    Default: "disa-notification"
+    Description: "The Base Name Of The Sns Topic."
+    Type: String
+    MinLength: 10
+    MaxLength: 40
+    AllowedPattern: "[a-z][a-z0-9-]*"
+    ConstraintDescription: "The length of SNS Topic base name should be between 10 and 40, must contain only lowercase letter, number, dash, dot and should start with a letter."
+  SNSTopicDisplayName:
+    Default: "SNS Topic Name For Sending Notification"
+    Description: "The SNS Topic Display Name."
+    Type: String
+    MinLength: 30
+    MaxLength: 200
+    AllowedPattern: "[a-zA-Z0-9-. _]*"
+    ConstraintDescription: "The length should be between 30 and 200, must alphanumeric character, space, dot dash or underscore."
+  SubscriptionEmail:
+    Default: "subhamay.aws@gmail.com"
+    Description: "The Subscription Email For The SNS Topic."
+    Type: String
+    MinLength: 10
+    MaxLength: 100
+    AllowedPattern: "[a-zA-Z0-9-.@_]*"
+    ConstraintDescription: "The length should be between 10 and 100, must be a valid email id."
+Resources:
+  ###################################### DynamoDB Table ############################################
+  DisaDynamoDBTable:
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Retain
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${CodeRepositoryBucket}.s3.amazonaws.com/0066-disa/cft/nested-stacks/dynamodb-stack.yaml'
+      Parameters:  
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        DynamoDBTableName: !Ref DynamoDBTableName
+        DynamoDBTablePartitionKey: !Ref DynamoDBTablePartitionKey 
+        DynamoDBTablePartitionKeyAttributeType: !Ref DynamoDBTablePartitionKeyAttributeType
+        DynamoDBTableGSIAttributeName: !Ref DynamoDBTableGSIAttributeName
+        DynamoDBTableGSIAttributeType: !Ref DynamoDBTableGSIAttributeType
+        DynamoDBTableKmsMasterKeyAlias: !Ref KmsMasterKeyAlias
+      TimeoutInMinutes: 15
+  ###################################### IAM Execution Roles #######################################
+  DisaIAMExecutionRole:
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Retain
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${CodeRepositoryBucket}.s3.amazonaws.com/0066-disa/cft/nested-stacks/iam-role-stack.yaml'
+      Parameters:  
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        LambdaExecutionRoleName: !Ref LambdaExecutionRoleName
+        LambdaExecutionPolicyName: !Ref LambdaExecutionPolicyName
+        StepFunctionExecutionRoleName: !Ref StepFunctionExecutionRoleName
+        StepFunctionExecutionPolicyName: !Ref StepFunctionExecutionPolicyName
+        EventBridgeSchedulerExecutionRoleName: !Ref EventBridgeSchedulerExecutionRoleName
+        EventBridgeSchedulerExecutionPolicyName: !Ref EventBridgeSchedulerExecutionPolicyName
+        LambdaFunctionCheckServiceBaseName: !Ref LambdaFunctionInitProcessBaseName
+        LambdaFunctionProcessBaseName: !Ref LambdaFunctionProcessBaseName
+        LambdaFunctionRetryBaseName: !Ref LambdaFunctionRetryBaseName
+        StepFunctionName: !Ref StepFunctionName
+        DynamoDBStreamArn: !GetAtt DisaDynamoDBTable.Outputs.DynamoDBStreamArn
+        DynamoDBTableArn: !GetAtt DisaDynamoDBTable.Outputs.DynamoDBTableArn
+        CloudWatchAlarmArn: !GetAtt DisaCloudWatchMetricAndAlarm.Outputs.CloudWatchAlarmArn
+        SNSTopicBaseName: !Ref SNSTopicBaseName
+        KmsMasterKeyId: !Ref KmsMasterKeyId
+      TimeoutInMinutes: 15
+  ###################################### Lambda Function Init Process ##############################
+  DisaLambdaFunctionInitProcess:
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Retain
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${CodeRepositoryBucket}.s3.amazonaws.com/0066-disa/cft/nested-stacks/lambda-function-stack.yaml'
+      Parameters:  
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        LambdaRuntime: !Ref LambdaRuntime
+        LambdaFunctionTimeoutSecs: !Ref LambdaFunctionTimeoutSecs
+        LambdaFunctionName: !Ref LambdaFunctionInitProcessBaseName
+        LambdaFunctionDescription: "Disa Lambda Function To Check A Service"
+        LambdaFunctionCodeBucket: !Ref CodeRepositoryBucket
+        LambdaFunctionCodeKey: !Ref LambdaFunctionInitProcessCodeKey
+        LambdaExecutionRoleArn: !GetAtt DisaIAMExecutionRole.Outputs.LambdaExecutionRoleArn
+        LambdaReservedConcurrency: !Ref LambdaReservedConcurrency
+        DynamoDBTableName: !Sub "${DynamoDBTableName}-${Environment}-${AWS::Region}"
+        StepFunctionName: !Ref StepFunctionName
+        MetricName: !Ref MetricName
+        DimensionName: !Ref DimensionName
+        DimensionValue: !Ref DimensionValue
+        CloudWatchNameSpace: !Ref CloudWatchNameSpace
+        SNSTopicBaseName: !Ref SNSTopicBaseName
+        LambdaHandlerPath: "disa_init_process.handler"
+      TimeoutInMinutes: 15
+  ###################################### Lambda Event Source Mapping ###############################
+  DisaLambdaEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 1
+      Enabled: True
+      FilterCriteria:
+        Filters:
+          - Pattern: '{ "eventName": ["INSERT"] }'
+      EventSourceArn: !GetAtt DisaDynamoDBTable.Outputs.DynamoDBStreamArn
+      FunctionName: !GetAtt DisaLambdaFunctionInitProcess.Outputs.LambdaFunctionArn
+      StartingPosition: TRIM_HORIZON
+  ###################################### Lambda Function Process Data ##############################
+  DisaLambdaFunctionProcess:
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Retain
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${CodeRepositoryBucket}.s3.amazonaws.com/0066-disa/cft/nested-stacks/lambda-function-stack.yaml'
+      Parameters:  
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        LambdaRuntime: !Ref LambdaRuntime
+        LambdaFunctionTimeoutSecs: !Ref LambdaFunctionTimeoutSecs
+        LambdaFunctionName: !Ref LambdaFunctionProcessBaseName
+        LambdaFunctionDescription: "Disa Lambda Function To Process Data"
+        LambdaFunctionCodeBucket: !Ref CodeRepositoryBucket
+        LambdaFunctionCodeKey: !Ref LambdaFunctionProcessCodeKey
+        LambdaExecutionRoleArn: !GetAtt DisaIAMExecutionRole.Outputs.LambdaExecutionRoleArn
+        LambdaReservedConcurrency: !Ref LambdaReservedConcurrency
+        DynamoDBTableName: !Sub "${DynamoDBTableName}-${Environment}-${AWS::Region}"
+        StepFunctionName: !Ref StepFunctionName
+        MetricName: !Ref MetricName
+        DimensionName: !Ref DimensionName
+        DimensionValue: !Ref DimensionValue
+        CloudWatchNameSpace: !Ref CloudWatchNameSpace
+        SNSTopicBaseName: !Ref SNSTopicBaseName
+        LambdaHandlerPath: "disa_process.handler"
+      TimeoutInMinutes: 15
+  ###################################### Lambda Function Retry #####################################
+  DisaLambdaFunctionRetry:
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Retain
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${CodeRepositoryBucket}.s3.amazonaws.com/0066-disa/cft/nested-stacks/lambda-function-stack.yaml'
+      Parameters:  
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        LambdaRuntime: !Ref LambdaRuntime
+        LambdaFunctionTimeoutSecs: !Ref LambdaFunctionTimeoutSecs
+        LambdaFunctionName: !Ref LambdaFunctionRetryBaseName
+        LambdaFunctionDescription: "Disa Lambda Function To Retry The Process"
+        LambdaFunctionCodeBucket: !Ref CodeRepositoryBucket
+        LambdaFunctionCodeKey: !Ref LambdaFunctionRetryCodeKey
+        LambdaExecutionRoleArn: !GetAtt DisaIAMExecutionRole.Outputs.LambdaExecutionRoleArn
+        LambdaReservedConcurrency: !Ref LambdaReservedConcurrency
+        DynamoDBTableName: !Sub "${DynamoDBTableName}-${Environment}-${AWS::Region}"
+        StepFunctionName: !Ref StepFunctionName
+        MetricName: !Ref MetricName
+        DimensionName: !Ref DimensionName
+        DimensionValue: !Ref DimensionValue
+        CloudWatchNameSpace: !Ref CloudWatchNameSpace
+        SNSTopicBaseName: !Ref SNSTopicBaseName
+        LambdaHandlerPath: "disa_retry.handler"
+      TimeoutInMinutes: 15
+  DisaRetrySchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties: 
+      Description: "Disa Schedule To Run Retry Lambda"
+      FlexibleTimeWindow: 
+        Mode: "OFF"
+      Name: "disa-retry-schedule"
+      ScheduleExpression: rate(60 minutes)
+      State: ENABLED
+      Target: 
+        Arn: !GetAtt DisaLambdaFunctionRetry.Outputs.LambdaFunctionArn
+        RoleArn: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/service-role/${EventBridgeSchedulerExecutionRoleName}'
+        Input: "{}"
+  ###################################### CloudWatch Custom Metric And Alarm ########################
+  DisaCloudWatchMetricAndAlarm:
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Retain
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${CodeRepositoryBucket}.s3.amazonaws.com/0066-disa/cft/nested-stacks/cw-custom-metric-alarm-stack.yaml'
+      Parameters:  
+        AlarmName: !Sub '${AlarmName}-${Environment}-${AWS::Region}'
+        MetricName: !Ref MetricName
+        CloudWatchNameSpace: !Ref CloudWatchNameSpace
+        AlarmThreshold: !Ref AlarmThreshold
+        DatapointsToAlarm: !Ref DatapointsToAlarm
+        EvaluationPeriodsInHour: !Ref EvaluationPeriodsInHour
+        DimensionName: !Ref DimensionName
+        DimensionValue: !Ref DimensionValue
+        AlarmPeriodInSeconds: !Ref AlarmPeriodInSeconds
+      TimeoutInMinutes: 15
+  ###################################### State Machine #############################################
+  DisaStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: !Sub '${StepFunctionName}-${Environment}-${AWS::Region}'
+      DefinitionS3Location:
+        Bucket: !Ref CodeRepositoryBucket
+        Key: 0066-disa/cft/state-machine/state-machine.json
+      DefinitionSubstitutions:
+        DisaLambdaFunctionProcess: !GetAtt DisaLambdaFunctionProcess.Outputs.LambdaFunctionArn
+        DynamoDBTableName: !Sub '${DynamoDBTableName}-${Environment}-${AWS::Region}'
+        CloudWatchAlarmName: !Sub '${AlarmName}-${Environment}-${AWS::Region}'
+      RoleArn: !GetAtt DisaIAMExecutionRole.Outputs.StepFunctionExecutionRoleArn
+      Tags: 
+        - Key: ProjectName
+          Value: !Ref ProjectName
+        - Key:  Environment
+          Value: !Ref Environment
+  ###################################### SNS Topic and Subscription ################################
+  DisaSNSTopicAndSubscription:
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Retain
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${CodeRepositoryBucket}.s3.amazonaws.com/0066-disa/cft/nested-stacks/sns-stack.yaml'
+      Parameters:  
+        SNSTopicBaseName: !Ref SNSTopicBaseName
+        SNSTopicDisplayName: !Ref SNSTopicDisplayName
+        SubscriptionEmail: !Ref SubscriptionEmail
+      TimeoutInMinutes: 15
+Outputs:
+  DisaDynamoDBTableArn: 
+    Description: Disa DynamoDB Table Arn
+    Value: !GetAtt DisaDynamoDBTable.Outputs.DynamoDBTableArn
+  DisaDynamoDBStreamArn: 
+    Description: Disa DynamoDB Table Arn
+    Value: !GetAtt DisaDynamoDBTable.Outputs.DynamoDBStreamArn
+  DisaIAMExecutionRoleArn:
+    Description: Disa Lambda Execution Role Arn
+    Value: !GetAtt DisaIAMExecutionRole.Outputs.LambdaExecutionRoleArn
+  DisaLambdaFunctionInitProcessArn: 
+    Description: Arn of The Lambda Function To Check A Service.
+    Value: !GetAtt DisaLambdaFunctionInitProcess.Outputs.LambdaFunctionArn
+  DisaLambdaFunctionProcessArn: 
+    Description: Arn of The Lambda Function To Process Data.
+    Value: !GetAtt DisaLambdaFunctionProcess.Outputs.LambdaFunctionArn
+  DisaLambdaFunctionRetryArn: 
+    Description: Arn of The Lambda Function To retry.
+    Value: !GetAtt DisaLambdaFunctionRetry.Outputs.LambdaFunctionArn
+  DisaCloudWatchMetricAndAlarm:
+    Description: Disa Custom CloudWatch Metric And Alarm Arn
+    Value: !GetAtt DisaCloudWatchMetricAndAlarm.Outputs.CloudWatchAlarmArn
+  DisaStateMachineArn:
+    Description: Disa State Machine Arn
+    Value: !GetAtt DisaStateMachine.Arn
+  DisaSNSTopicArn:
+    Description: Disa SNS Topic Arn
+    Value: !GetAtt DisaSNSTopicAndSubscription.Outputs.SNSTopicArn
+  DisaSNSSubscriptionArn:
+    Description: Disa SNS Subscription Arn
+    Value: !GetAtt DisaSNSTopicAndSubscription.Outputs.SNSSubscriptionArn
+  DisaRetryScheduleArn:
+    Description: Disa Retry Schedule Arn
+    Value: !Ref DisaRetrySchedule
+
+
